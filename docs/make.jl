@@ -8,7 +8,7 @@ makedocs(;
     authors="Daniel Sharp <dannys4@mit.edu> and contributors",
     sitename="SparseQuadrature.jl",
     format=Documenter.HTML(;
-        canonical="https://dannys4@mit.edu.github.io/SparseQuadrature.jl",
+        canonical="https://dannys4.github.io/SparseQuadrature.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -18,6 +18,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/dannys4@mit.edu/SparseQuadrature.jl",
+    repo="github.com/dannys4/SparseQuadrature.jl",
     devbranch="main",
 )
