@@ -1,5 +1,5 @@
 module SparseQuadrature
 
-# Write your package code here.
+using MultiIndexing, FFTW
 
 end
