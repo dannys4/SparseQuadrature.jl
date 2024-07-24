@@ -1,6 +1,9 @@
-using SparseQuadrature
+using SparseQuadrature, MultiIndexing, StaticArrays
 using Test
 
 @testset "SparseQuadrature.jl" begin
-    # Write your tests here.
+
+    @testset "Smolyak Quadrature" include("smolyak.jl")
+    @testset "Adaptive sparse quadrature" include("adaptiveSparseGrid.jl")
+    
 end
