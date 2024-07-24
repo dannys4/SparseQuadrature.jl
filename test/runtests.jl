@@ -3,7 +3,11 @@ using Test
 
 @testset "SparseQuadrature.jl" begin
 
-    @testset "Smolyak Quadrature" include("smolyak.jl")
-    @testset "Adaptive sparse quadrature" include("adaptiveSparseGrid.jl")
+    @testset "Smolyak Quadrature" begin
+        include("smolyak.jl")
+    end
+    @testset "Adaptive sparse quadrature" begin
+        include("adaptiveSparseGrid.jl")
+    end
     
 end
