@@ -1,6 +1,6 @@
 module SparseQuadrature
 
-using MultiIndexing, FFTW, StaticArrays
+using MultiIndexing, FFTW, StaticArrays, Serialization
 
 include("sortedList.jl")
 include("univariateQuadrature.jl")
