@@ -9,6 +9,7 @@ MultiIndexing = "b97ecbdf-1535-430e-a7c7-b5702749f368"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
+FFTW = "1"
 MultiIndexing = "1.1.0"
 StaticArrays = "1"
 julia = "1.7"
