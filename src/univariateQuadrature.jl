@@ -49,3 +49,22 @@ end
 
 clenshawcurtis01_nested(j) = clenshawcurtis01(j == 0 ? 0 : 2^j)
 gausspatterson01_nested(j) = gausspatterson01(2^(j+1) - 1)
+
+"""
+    CreateQuadratureWeights(pts, functions, true_integrals)
+Simple method to create quadrature weights to integrate functions correctly.
+
+# Arguments
+- `pts::AbstractVector`-- vector of points
+- `functions(N, pt)`-- A function to evaluate the first `N` functions at 1d `pt`
+- `true_integrals(N)`-- A function to return the true integrals of rhe first `N` functions
+- `verbose::Bool`-- whether to be verbose
+"""
+function CreateQuadratureWeights(pts::AbstractVector, functions, true_integrals, verbose=false)
+    N = length(pts)
+    N == 1 && return true_integrals(1)/functions(1,pts[])[]
+    function_evals = reduce(hcat, functions(N,x) for x in pts)
+    function_ints = true_integrals(N)
+    verbose && @info "Conditioning: $(cond(function_evals))"
+    function_evals\function_ints
+end
