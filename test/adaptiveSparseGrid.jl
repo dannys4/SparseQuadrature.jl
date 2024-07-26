@@ -113,15 +113,14 @@ for quad_rule in (clenshawcurtis01_nested, gausspatterson01_nested)
             @test all(mset_base.maxDegrees .== expected_maxDegrees)
 
             # Check the rule it returns is actually the rule associated with the new mset
-            lt_slice = mat -> ((i, j) -> any(mat[k, i] < mat[k, j] for k in axes(mat, 1)))
-            sp_test = sort(axes(final_pts, 2), lt=lt_slice(final_pts))
-            final_pts = final_pts[:, sp_test]
-            final_wts = final_wts[sp_test]
+            sortperm_test = sortperm(collect(eachcol(final_pts)))
+            final_pts = final_pts[:, sortperm_test]
+            final_wts = final_wts[sortperm_test]
 
             ref_pts, ref_wts = SmolyakQuadrature(mset_base, quad_rule)
-            sp_ref = sort(axes(ref_pts, 2), lt=lt_slice(ref_pts))
-            ref_pts = ref_pts[:, sp_ref]
-            ref_wts = ref_wts[sp_ref]
+            sortperm_ref = sortperm(collect(eachcol(ref_pts)))
+            ref_pts = ref_pts[:, sortperm_ref]
+            ref_wts = ref_wts[sortperm_ref]
             @test all(isapprox.(ref_pts, final_pts, atol=1e-10))
             @test all(isapprox.(ref_wts, final_wts, atol=1e-10))
         end
