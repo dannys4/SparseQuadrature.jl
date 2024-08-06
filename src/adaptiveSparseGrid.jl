@@ -54,7 +54,6 @@ struct AdaptiveSparseGrid{d, DO, FO, R, D, V, C}
     diagnostic::D
     tol::Float64
     is_valid_midx::V
-    is_directional::Bool
     diagnostic_comparison::C
     max_fcn_evals::Int
     max_time::Float64
@@ -63,14 +62,14 @@ end
 function AdaptiveSparseGrid(base_mset::MultiIndexSet{d}, quad_rules::Tuple;
         diagnostic = differenceDiagnostic!, tol = 1e-6, diagnostic_output_type::Type = Float64,
         function_output_type::Type = Float64,
-        is_valid_midx = Returns(true), is_directional = false,
+        is_valid_midx = Returns(true),
         diagnostic_comparison = >, max_fcn_evals = typemax(Int), max_time=typemax(Float64)) where {d}
 
     @assert d==length(quad_rules) "Expected $d quadrature rules, got $(length(quad_rules))"
 
     AdaptiveSparseGrid(
         base_mset, diagnostic_output_type, function_output_type, quad_rules, diagnostic,
-        tol, is_valid_midx, is_directional, diagnostic_comparison, max_fcn_evals, max_time)
+        tol, is_valid_midx, diagnostic_comparison, max_fcn_evals, max_time)
 end
 
 function AdaptiveSparseGrid(base_mset::MultiIndexSet{d}, quad_rules::Function; kwargs...) where {d}
@@ -83,79 +82,54 @@ function adaptiveIntegrate!(asg::AdaptiveSparseGrid{d, Diag_T, U}, fcn; verbose:
     mset = asg.base_mset
     rules = asg.quad_rules
     is_valid_midx = asg.is_valid_midx
-    is_directional = asg.is_directional
 
     # TODO: Need entire frontier, not just reduced. No difference with Total-Order msets though.
     active_midxs = MultiIndexing.findReducedFrontier(mset)
     MIdx_T = SVector{d, Int}
-    # If directional diagnostic, list elements are (midx, scalar_diagnostic, direction)
-    Eltype_T = is_directional ? Tuple{MIdx_T, Diag_T, Int} : Tuple{MIdx_T, Diag_T}
-    sorted_midxs = SortedList{Eltype_T}((x,y)->asg.diagnostic_comparison(x[2],y[2]))
-    global_error = 0.
 
+    # list elements are (midx, scalar_diagnostic)
+    Eltype_T = Tuple{MIdx_T, Diag_T}
+    sorted_midxs = SortedList{Eltype_T}((x,y)->asg.diagnostic_comparison(x[2],y[2]))
+    global_error = zero(Diag_T)
+    start_time = time()
+    
     # Add all active indices in starting set to the list
     for idx in active_midxs
         midx = mset[idx]
         !is_valid_midx(midx) && continue
         midx_diag = asg.diagnostic(eval_dict, rules, midx, fcn)
 
-        if is_directional
-            for i in 1:d
-                push!(sorted_midxs, (midx, midx_diag[i], i))
-                global_error += midx_diag[i]
-            end
-        else
-            push!(sorted_midxs, (midx, midx_diag))
-            global_error += midx_diag
-        end
+        push!(sorted_midxs, (midx, midx_diag))
+        global_error += midx_diag
     end
-
-    start_time = time()
 
     # While we still have valid midxs, have more evaluations left, and remaining valid midxs have nonnegligible diagnostic
     while !isempty(sorted_midxs) && length(eval_dict) <= asg.max_fcn_evals && global_error > asg.tol && (time() - start_time) < asg.max_time
         next_midx = pop!(sorted_midxs)
         add_midx, diagnostic_eval = next_midx
-        global_error -= sum(diagnostic_eval)
-
-        if is_directional
-            dir = next_midx[end]
-            add_midx_dir = SVector{d}(ntuple(j->add_midx[j] + Int(j==dir), d))
+        global_error -= diagnostic_eval
+        
+        verbose && @info "Maximum diagnostic value on frontier from multi-index $add_midx, value: $diagnostic_eval"
+        tmp_midx = collect(add_midx)
+        # Iterate over forward neighbors of add_midx, adding ones that are valid and in the reduced margin
+        for j in 1:d
+            tmp_midx[j] += 1
+            midx_j = SVector{d}(tmp_midx)
             # If midx_j is not valid according to criterion, skip
-            is_midx_valid = is_valid_midx(add_midx_dir)
-            # push! will return false and not include if midx is not in mset reduced margin
-            if is_midx_valid && push!(mset, add_midx_dir)
-                verbose && @info "Maximum diagnostic value on frontier from multi-index $add_midx, value: $diagnostic_eval, direction $dir"
-                midx_diag = asg.diagnostic(eval_dict, rules, add_midx_dir, fcn)
-                verbose && @info "Adding midx $add_midx_dir, diagnostic values $(Tuple(midx_diag))"
-                for j in 1:d
-                    global_error += midx_diag[j]
-                    push!(sorted_midxs, (add_midx_dir, midx_diag[j], j))
-                end
-            end
-        else # If the diagnostic is not directional
-            verbose && @info "Maximum diagnostic value on frontier from multi-index $add_midx, value: $diagnostic_eval"
-            tmp_midx = collect(add_midx)
-            # Iterate over forward neighbors of add_midx, adding ones that are valid and in the reduced margin
-            for j in 1:d
-                tmp_midx[j] += 1
-                midx_j = SVector{d}(tmp_midx)
-                # If midx_j is not valid according to criterion, skip
-                is_midx_j_valid = is_valid_midx(midx_j)
-                # push! will return false and not include if midx_j is not in mset reduced margin
-                if is_midx_j_valid && push!(mset, midx_j)
-                    midx_j_diag = asg.diagnostic(eval_dict, rules, midx_j, fcn)
-                    global_error += midx_j_diag
+            is_midx_j_valid = is_valid_midx(midx_j)
+            # push! will return false and not include if midx_j is not in mset reduced margin
+            if is_midx_j_valid && push!(mset, midx_j)
+                midx_j_diag = asg.diagnostic(eval_dict, rules, midx_j, fcn)
+                global_error += midx_j_diag
 
-                    # Stop evaluating if we hit max time or function evals
-                    (time() - start_time) > asg.max_time && break
-                    length(eval_dict) > asg.max_fcn_evals && break
+                # Stop evaluating if we hit max time or function evals
+                (time() - start_time) > asg.max_time && break
+                length(eval_dict) >= asg.max_fcn_evals && break
 
-                    verbose && @info "Adding multi-index $midx_j, diagnostic $midx_j_diag"
-                    push!(sorted_midxs, (midx_j, midx_j_diag))
-                end
-                tmp_midx[j] -= 1
+                verbose && @info "Adding multi-index $midx_j, diagnostic $midx_j_diag"
+                push!(sorted_midxs, (midx_j, midx_j_diag))
             end
+            tmp_midx[j] -= 1
         end
         verbose && @info "Current global error $global_error"
     end
@@ -165,7 +139,7 @@ function adaptiveIntegrate!(asg::AdaptiveSparseGrid{d, Diag_T, U}, fcn; verbose:
             @info "Ran out of time"
         elseif isempty(sorted_midxs)
             @info "Ran out of multi-indices to add"
-        elseif length(eval_dict) > asg.max_fcn_evals
+        elseif length(eval_dict) >= asg.max_fcn_evals
             @info "Reached max function evaluations: $(length(eval_dict))"
         elseif global_error < asg.tol
             @info "Reached tolerance with global error estimate $global_error"
