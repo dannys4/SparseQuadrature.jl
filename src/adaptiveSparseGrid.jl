@@ -43,7 +43,7 @@ function differenceDiagnostic!(eval_dict, rules, midx::SVector{d, Int}, fcn) whe
     difference_rules_1d = [formDifference1dRule(r, idx) for (r, idx) in zip(rules, midx)]
     pts, wts = tensor_prod_quad(difference_rules_1d, Val{d}())
     pts_evals = map(pt -> getPointEval!(eval_dict, pt, fcn), pts)
-    abs(sum(eval * w for (eval, w) in zip(pts_evals, wts))) / length(pts)
+    abs(sum(eval * w for (eval, w) in zip(pts_evals, wts)))
 end
 
 struct AdaptiveSparseGrid{d, DO, FO, R, D, V, C}
