@@ -2,7 +2,6 @@ using SparseQuadrature: tensor_prod_quad, formDifference1dRule
 
 test_fcn_1d = x -> sin(0.4pi * cos(0.4pi * x[]))^2 / (x[] + 1)
 for quad_rule in (clenshawcurtis01_nested, gausspatterson01_nested, leja01_nested)
-
     @testset "Difference Operators" begin
         order = 5
         @testset "One-dimensional function" begin
@@ -24,7 +23,7 @@ for quad_rule in (clenshawcurtis01_nested, gausspatterson01_nested, leja01_neste
             midx = @SVector[order]
             diff = SparseQuadrature.differenceDiagnostic!(eval_dict, rules, midx, test_fcn_counter)
             @test eval_count == length(pts_hi)
-            @test diff ≈ test_fcn_diff_est / length(pts_hi) atol = 1e-10
+            @test diff ≈ abs(test_fcn_diff_est) atol = 1e-10
         end
         @testset "two-dimensional function" begin
             eval_counter = 0
@@ -55,7 +54,7 @@ for quad_rule in (clenshawcurtis01_nested, gausspatterson01_nested, leja01_neste
             diff_approx = SparseQuadrature.differenceDiagnostic!(eval_dict, rules, midx_test, test_fcn_2d)
             expected_evals = length(pts_hi_hi)
             @test eval_counter == expected_evals
-            @test diff_true / length(pts_hi_hi) ≈ diff_approx atol = 1e-10
+            @test abs(diff_true) ≈ diff_approx atol = 1e-10
         end
     end
 
@@ -118,7 +117,7 @@ for quad_rule in (clenshawcurtis01_nested, gausspatterson01_nested, leja01_neste
                 sum(midx .> 0) <= 1 && return true
                 sum(midx) < 3
             end
-            asg = AdaptiveSparseGrid(mset_base, (quad_rule, quad_rule), tol=5eps(), neg_tol=-eps(); is_valid_midx)
+            asg = AdaptiveSparseGrid(mset_base, (quad_rule, quad_rule), tol=5eps(); is_valid_midx)
             result, eval_dict, final_pts, final_wts = adaptiveIntegrate!(asg, test_fcn_2d_poly; verbose=false)
 
             @test length(eval_dict) == num_evals
@@ -165,7 +164,7 @@ for quad_rule in (clenshawcurtis01_nested, gausspatterson01_nested, leja01_neste
             num_nz < 2 || sum(midx) < dim + 1
         end
         test_fcn_nd_int = dim / (pow + 1) + 2.0^(-dim)
-        asg = AdaptiveSparseGrid(mset_base, ntuple(_ -> quad_rule, dim), tol=5eps(), neg_tol=-0.1eps(); is_valid_midx)
+        asg = AdaptiveSparseGrid(mset_base, quad_rule, tol=10*dim*eps(); is_valid_midx)
         result, eval_dict, final_pts, final_wts = adaptiveIntegrate!(asg, test_fcn_nd_poly; verbose=false)
         @test result ≈ test_fcn_nd_int atol = 1e-10
         @test length(eval_dict) == num_evals
