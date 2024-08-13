@@ -1,7 +1,7 @@
 using SparseQuadrature: tensor_prod_quad, formDifference1dRule
 
 test_fcn_1d = x -> sin(0.4pi * cos(0.4pi * x[]))^2 / (x[] + 1)
-for quad_rule in (clenshawcurtis01_nested, gausspatterson01_nested, leja01_nested)
+for quad_rule in (clenshawcurtis01_nested, gausspatterson01_nested, leja01_open_nested, leja01_closed_nested)
     @testset "Difference Operators" begin
         order = 5
         @testset "One-dimensional function" begin
@@ -84,7 +84,7 @@ for quad_rule in (clenshawcurtis01_nested, gausspatterson01_nested, leja01_neste
             elseif quad_rule == gausspatterson01_nested
                 needed_level = ceil(Int, log2((10+2)÷2))
                 expected_evals = 2^(needed_level + 1) - 1
-            elseif quad_rule == leja01_nested
+            elseif quad_rule == leja01_open_nested || quad_rule == leja01_closed_nested
                 needed_level = 9
                 expected_evals = needed_level+3
             else
@@ -128,7 +128,7 @@ for quad_rule in (clenshawcurtis01_nested, gausspatterson01_nested, leja01_neste
                 expected_maxDegrees = [3,3]
             elseif quad_rule == clenshawcurtis01_nested
                 expected_maxDegrees = [5,4]
-            elseif quad_rule == leja01_nested
+            elseif quad_rule == leja01_open_nested || quad_rule == leja01_closed_nested
                 expected_maxDegrees = [11, 8]
             else
                 throw(InvalidStateException("Unexpected quadrature rule $quad_rule"))
