@@ -11,5 +11,4 @@ using Test
     @testset "Adaptive sparse quadrature" begin
         include("adaptiveSparseGrid.jl")
     end
-    
 end

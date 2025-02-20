@@ -1,4 +1,5 @@
 using FastGaussQuadrature
+using UnivariateApprox: clenshawcurtis01
 
 function unifquad01(exactness)
     n = exactness ÷ 2 + 1

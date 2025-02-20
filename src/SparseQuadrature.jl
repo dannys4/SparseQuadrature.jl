@@ -1,10 +1,8 @@
 module SparseQuadrature
 
-using MultiIndexing, FFTW, StaticArrays, Serialization
+using MultiIndexing, StaticArrays, UnivariateApprox
 
 include("sortedList.jl")
-include("univariateQuadrature.jl")
-include("leja.jl")
 include("smolyak.jl")
 include("adaptiveSparseGrid.jl")
 

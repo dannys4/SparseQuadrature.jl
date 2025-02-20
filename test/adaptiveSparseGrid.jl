@@ -1,3 +1,4 @@
+using UnivariateApprox
 using SparseQuadrature: tensor_prod_quad, formDifference1dRule
 
 test_fcn_1d = x -> sin(0.4pi * cos(0.4pi * x[]))^2 / (x[] + 1)
